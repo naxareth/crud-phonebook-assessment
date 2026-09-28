@@ -9,7 +9,7 @@
     "server": "node server/index.js",
     "client": "npm --prefix client run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build": "npm --prefix client run build",
+    "build": "npm --prefix client run build && node -e \"const fs=require('fs'); if(fs.existsSync('dist')&&!fs.existsSync('client/dist'))fs.cpSync('dist','client/dist',{recursive:true}); if(fs.existsSync('client/dist')&&!fs.existsSync('dist'))fs.cpSync('client/dist','dist',{recursive:true});\"",
     "test": "node --test server/tests/*.test.js"
   },
   "keywords": [
