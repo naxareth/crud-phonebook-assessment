@@ -3,7 +3,6 @@
  */
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-const PHONE_CHAR_REGEX = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{2,26}$/;
 
 /**
  * Sanitizes input text: removes control chars, strips HTML, collapses spaces, trims.
@@ -14,6 +13,7 @@ export const sanitizeInput = (val) => {
   if (!val) return '';
   return String(val)
     .normalize('NFC')
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/<[^>]*>?/gm, '')
     .replace(/\s+/g, ' ')

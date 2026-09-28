@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 export function DeleteModal({
   isOpen,
@@ -9,57 +9,81 @@ export function DeleteModal({
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
-  
-  // Animation state
-  const [isRendered, setIsRendered] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
-  const isClosingRef = useRef(false);
 
+  const dialogRef = useRef(null);
   const cancelBtnRef = useRef(null);
 
-  useEffect(() => {
-    if (isOpen && contact) {
-      setIsRendered(true);
-      setIsClosing(false);
-      isClosingRef.current = false;
-      setError(null);
-      setIsDeleting(false);
-
-      setTimeout(() => {
-        if (cancelBtnRef.current) {
-          cancelBtnRef.current.focus();
-        }
-      }, 50);
-    } else if (isRendered && !isClosingRef.current) {
-      triggerClose();
-    }
-  }, [isOpen, contact]);
-
-  const triggerClose = () => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
+  const triggerClose = useCallback(() => {
+    if (isClosing) return;
     setIsClosing(true);
 
     setTimeout(() => {
-      setIsRendered(false);
       setIsClosing(false);
-      isClosingRef.current = false;
       onClose();
       if (triggerRef && triggerRef.current) {
         triggerRef.current.focus();
       }
     }, 180);
-  };
+  }, [isClosing, onClose, triggerRef]);
 
+  // Focus cancel button on mount/open
   useEffect(() => {
+    if (isOpen && contact) {
+      setError(null);
+      setIsDeleting(false);
+
+      const timer = setTimeout(() => {
+        if (cancelBtnRef.current) {
+          cancelBtnRef.current.focus();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, contact]);
+
+  // Handle ESC key and Tab focus containment
+  useEffect(() => {
+    if (!isOpen || isClosing) return;
+
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isRendered && !isDeleting && !isClosing) {
+      // 1. Escape key
+      if (e.key === 'Escape' && !isDeleting) {
         triggerClose();
+        return;
+      }
+
+      // 2. Tab focus containment
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusableElements = dialogRef.current.querySelectorAll(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+
+        if (focusableElements.length === 0) {
+          e.preventDefault();
+          return;
+        }
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement || !dialogRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement || !dialogRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isRendered, isDeleting, isClosing]);
+  }, [isOpen, isDeleting, isClosing, triggerClose]);
 
   const handleDelete = async () => {
     if (!contact) return;
@@ -76,7 +100,7 @@ export function DeleteModal({
     }
   };
 
-  if (!isRendered || !contact) {
+  if ((!isOpen && !isClosing) || !contact) {
     return null;
   }
 
@@ -91,6 +115,7 @@ export function DeleteModal({
       role="presentation"
     >
       <div
+        ref={dialogRef}
         className={`modal-dialog ${isClosing ? 'is-closing' : ''}`}
         role="alertdialog"
         aria-modal="true"

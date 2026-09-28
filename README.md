@@ -96,7 +96,7 @@ crud-phonebook-assessment/
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-- Node.js (v18+)
+- Node.js (v20.19+ or v22.12+)
 - A free [Supabase](https://supabase.com) account & project
 
 ### 2. Database Setup (Supabase)

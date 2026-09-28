@@ -67,9 +67,13 @@ app.use('/api/*', (req, res) => {
 // Centralized error handler
 app.use((err, req, res, next) => {
   console.error('[Server Internal Error]', err);
-  const status = err.status || 500;
-  const message = err.message || 'An unexpected error occurred.';
+  const status = typeof err.status === 'number' && err.status >= 400 && err.status < 600 ? err.status : 500;
   
+  // Return specific messages only for 4xx client errors; return generic message for 500 server errors
+  const message = status < 500 && err.message
+    ? err.message
+    : 'An unexpected server error occurred.';
+
   res.status(status).json({
     error: message
   });

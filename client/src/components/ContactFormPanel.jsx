@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { validateContactForm } from '../utils/validation.js';
 
 export function ContactFormPanel({
@@ -17,22 +17,14 @@ export function ContactFormPanel({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState(null);
-  
-  // Animation state
-  const [isRendered, setIsRendered] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
-  const isClosingRef = useRef(false);
 
   const nameInputRef = useRef(null);
   const panelRef = useRef(null);
 
-  // Synchronize rendered state with isOpen prop
+  // Initialize form when opening
   useEffect(() => {
     if (isOpen) {
-      setIsRendered(true);
-      setIsClosing(false);
-      isClosingRef.current = false;
-
       if (initialContact) {
         setFormData({
           name: initialContact.name || '',
@@ -49,44 +41,71 @@ export function ContactFormPanel({
       setErrors({});
       setServerError(null);
 
-      // Focus first input
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (nameInputRef.current) {
           nameInputRef.current.focus();
         }
       }, 60);
-    } else if (isRendered && !isClosingRef.current) {
-      triggerClose();
+      return () => clearTimeout(timer);
     }
   }, [isOpen, initialContact]);
 
   // Gracefully animate out then invoke onClose
-  const triggerClose = () => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
+  const triggerClose = useCallback(() => {
+    if (isClosing) return;
     setIsClosing(true);
 
     setTimeout(() => {
-      setIsRendered(false);
       setIsClosing(false);
-      isClosingRef.current = false;
       onClose();
       if (triggerRef && triggerRef.current) {
         triggerRef.current.focus();
       }
     }, 220);
-  };
+  }, [isClosing, onClose, triggerRef]);
 
-  // Handle ESC key to close
+  // Handle ESC key to close and Tab key to trap focus
   useEffect(() => {
+    if (!isOpen || isClosing) return;
+
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isRendered && !isSubmitting && !isClosing) {
+      // 1. Escape key handling
+      if (e.key === 'Escape' && !isSubmitting) {
         triggerClose();
+        return;
+      }
+
+      // 2. Tab focus containment
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusableElements = panelRef.current.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+
+        if (focusableElements.length === 0) {
+          e.preventDefault();
+          return;
+        }
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement || !panelRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement || !panelRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isRendered, isSubmitting, isClosing]);
+  }, [isOpen, isSubmitting, isClosing, triggerClose]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -127,7 +146,7 @@ export function ContactFormPanel({
     }
   };
 
-  if (!isRendered) {
+  if (!isOpen && !isClosing) {
     return null;
   }
 

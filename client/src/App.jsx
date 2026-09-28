@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { api } from './services/api.js';
 import { Header } from './components/Header.jsx';
 import { ControlBar } from './components/ControlBar.jsx';
@@ -27,7 +27,7 @@ export function App() {
   const triggerRef = useRef(null);
 
   // Fetch contacts on mount
-  const loadContacts = async () => {
+  const loadContacts = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
@@ -39,11 +39,11 @@ export function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadContacts();
-  }, []);
+  }, [loadContacts]);
 
   // Filtered contacts based on search query (name or phone)
   const filteredContacts = useMemo(() => {
@@ -117,45 +117,54 @@ export function App() {
     setToast({ type: 'success', message: 'Contact deleted' });
   };
 
+  const isModalActive = isPanelOpen || isDeleteOpen;
+
   return (
-    <div className="app-container">
-      <Header onAddClick={handleOpenAdd} />
+    <>
+      <div
+        id="app-shell"
+        className="app-container"
+        inert={isModalActive ? '' : undefined}
+        aria-hidden={isModalActive}
+      >
+        <Header onAddClick={handleOpenAdd} />
 
-      <ControlBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        totalCount={contacts.length}
-        filteredCount={filteredContacts.length}
-      />
+        <ControlBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          totalCount={contacts.length}
+          filteredCount={filteredContacts.length}
+        />
 
-      <Toast toast={toast} onDismiss={() => setToast(null)} />
+        <Toast toast={toast} onDismiss={() => setToast(null)} />
 
-      {/* Main Content Area */}
-      <main id="main-content">
-        {isLoading ? (
-          <LoadingState />
-        ) : fetchError ? (
-          <ErrorState message={fetchError} onRetry={loadContacts} />
-        ) : contacts.length === 0 ? (
-          <EmptyState onAddClick={handleOpenAdd} />
-        ) : filteredContacts.length === 0 ? (
-          <NoSearchResultsState
-            searchTerm={searchTerm}
-            onClearSearch={() => setSearchTerm('')}
-          />
-        ) : (
-          <ContactList
-            contacts={filteredContacts}
-            onEdit={handleOpenEdit}
-            onDelete={handleOpenDelete}
-          />
-        )}
-      </main>
+        {/* Main Content Area */}
+        <main id="main-content">
+          {isLoading ? (
+            <LoadingState />
+          ) : fetchError ? (
+            <ErrorState message={fetchError} onRetry={loadContacts} />
+          ) : contacts.length === 0 ? (
+            <EmptyState onAddClick={handleOpenAdd} />
+          ) : filteredContacts.length === 0 ? (
+            <NoSearchResultsState
+              searchTerm={searchTerm}
+              onClearSearch={() => setSearchTerm('')}
+            />
+          ) : (
+            <ContactList
+              contacts={filteredContacts}
+              onEdit={handleOpenEdit}
+              onDelete={handleOpenDelete}
+            />
+          )}
+        </main>
 
-      {/* Footer / Architecture attribution */}
-      <footer className="directory-footer">
-        <div className="footer-badge">Paper Directory</div>
-      </footer>
+        {/* Footer */}
+        <footer className="directory-footer">
+          <div className="footer-badge">Paper Directory</div>
+        </footer>
+      </div>
 
       {/* Reusable Contact Form Drawer (Add / Edit) */}
       <ContactFormPanel
@@ -174,7 +183,7 @@ export function App() {
         onConfirm={handleConfirmDelete}
         triggerRef={triggerRef}
       />
-    </div>
+    </>
   );
 }
 
