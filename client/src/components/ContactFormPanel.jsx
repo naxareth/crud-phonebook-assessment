@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-
-const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-const PHONE_CHAR_REGEX = /^[+0-9\s\-()./]+$/;
+import { validateContactForm } from '../utils/validation.js';
 
 export function ContactFormPanel({
   isOpen,
@@ -102,44 +100,12 @@ export function ContactFormPanel({
     }
   };
 
-  const validate = () => {
-    const newErrors = {};
-    const trimmedName = formData.name.trim();
-    const trimmedPhone = formData.phone.trim();
-    const trimmedEmail = formData.email.trim();
-
-    if (!trimmedName) {
-      newErrors.name = 'Full name is required.';
-    } else if (trimmedName.length > 100) {
-      newErrors.name = 'Full name cannot exceed 100 characters.';
-    }
-
-    const digitCount = trimmedPhone.replace(/\D/g, '').length;
-    if (!trimmedPhone) {
-      newErrors.phone = 'Phone number is required.';
-    } else if (trimmedPhone.length < 3 || digitCount < 3) {
-      newErrors.phone = 'Phone number must contain at least 3 digits.';
-    } else if (trimmedPhone.length > 30) {
-      newErrors.phone = 'Phone number cannot exceed 30 characters.';
-    } else if (!PHONE_CHAR_REGEX.test(trimmedPhone)) {
-      newErrors.phone = 'Please enter a valid phone number (e.g. +1 (555) 123-4567).';
-    }
-
-    if (trimmedEmail) {
-      if (trimmedEmail.length > 254) {
-        newErrors.email = 'Email cannot exceed 254 characters.';
-      } else if (!EMAIL_REGEX.test(trimmedEmail)) {
-        newErrors.email = 'Please enter a valid email address.';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) {
+    const result = validateContactForm(formData);
+    
+    if (!result.isValid) {
+      setErrors(result.errors);
       return;
     }
 
@@ -147,13 +113,7 @@ export function ContactFormPanel({
     setServerError(null);
 
     try {
-      const payload = {
-        name: formData.name.trim(),
-        phone: formData.phone.trim(),
-        email: formData.email.trim() ? formData.email.trim() : null
-      };
-
-      await onSave(payload, initialContact ? initialContact.id : null);
+      await onSave(result.sanitized, initialContact ? initialContact.id : null);
       // Animate out smoothly on success
       triggerClose();
     } catch (err) {

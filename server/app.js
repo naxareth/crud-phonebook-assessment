@@ -11,11 +11,27 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 // Enable CORS for development
 app.use(cors());
 
-// Parse JSON bodies
-app.use(express.json());
+// Parse JSON bodies with strict 16kb payload limit to prevent DoS
+app.use(express.json({ limit: '16kb' }));
+
+// Handle invalid JSON body syntax errors gracefully
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Malformed JSON payload in request body.' });
+  }
+  next(err);
+});
 
 // API Health / Config status
 app.get('/api/health', (req, res) => {

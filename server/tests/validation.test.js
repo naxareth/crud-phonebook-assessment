@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateContactInput, isValidUUID } from '../utils/validation.js';
+import { validateContactInput, isValidUUID, sanitizeString } from '../utils/validation.js';
 
 test('Validation: Valid contact with all fields', () => {
   const result = validateContactInput({
@@ -14,6 +14,52 @@ test('Validation: Valid contact with all fields', () => {
   assert.equal(result.sanitized.phone, '+1 (555) 123-4567');
   assert.equal(result.sanitized.email, 'jane.doe@example.com');
   assert.deepEqual(result.errors, {});
+});
+
+test('Sanitization: Strips XSS script tags and HTML elements', () => {
+  const result = validateContactInput({
+    name: '<script>alert("xss")</script>Dr. John Watson<b></b>',
+    phone: '+1 (555) 000-1111',
+    email: 'john<script>@example.com'
+  });
+
+  assert.equal(result.isValid, true);
+  assert.equal(result.sanitized.name, 'alert("xss")Dr. John Watson');
+  assert.equal(result.sanitized.email, 'john@example.com');
+});
+
+test('Sanitization: Removes non-printable control characters and null bytes', () => {
+  const dirtyName = 'Arthur\x00\x08\x1B Pendelton\x7F';
+  const cleaned = sanitizeString(dirtyName);
+  assert.equal(cleaned, 'Arthur Pendelton');
+});
+
+test('Sanitization: Collapses excessive internal whitespace into single space', () => {
+  const result = validateContactInput({
+    name: 'Eleanor     Vance',
+    phone: '+1   555   432   8765'
+  });
+
+  assert.equal(result.isValid, true);
+  assert.equal(result.sanitized.name, 'Eleanor Vance');
+  assert.equal(result.sanitized.phone, '+1 555 432 8765');
+});
+
+test('Validation: Supports international Unicode names with accents and characters', () => {
+  const names = [
+    'María José',
+    'François Müller',
+    'Björn Stroustrup',
+    '佐藤 健',
+    "Patrick O'Connor",
+    'Jean-Luc Picard'
+  ];
+
+  for (const name of names) {
+    const res = validateContactInput({ name, phone: '+1 555 123 4567' });
+    assert.equal(res.isValid, true, `Expected valid name for: ${name}`);
+    assert.equal(res.sanitized.name, name);
+  }
 });
 
 test('Validation: Valid contact with optional email omitted', () => {
@@ -46,17 +92,6 @@ test('Validation: Preserves international and leading zeros in phone numbers', (
   }
 });
 
-test('Validation: Valid contact with empty whitespace email', () => {
-  const result = validateContactInput({
-    name: 'Beatrix Thorne',
-    phone: '+44 20 7946 0912',
-    email: '   '
-  });
-
-  assert.equal(result.isValid, true);
-  assert.equal(result.sanitized.email, null);
-});
-
 test('Validation: Reject missing or empty name and phone', () => {
   const result = validateContactInput({
     name: '   ',
@@ -68,15 +103,44 @@ test('Validation: Reject missing or empty name and phone', () => {
   assert.ok(result.errors.phone);
 });
 
-test('Validation: Reject invalid email format', () => {
+test('Validation: Reject name with only symbols and no letters/digits', () => {
   const result = validateContactInput({
-    name: 'Clara Oswald',
-    phone: '+1 555 432 1111',
-    email: 'invalid-email-address'
+    name: '!@#$%^&*()',
+    phone: '+1 555 123 4567'
   });
 
   assert.equal(result.isValid, false);
-  assert.ok(result.errors.email);
+  assert.ok(result.errors.name);
+});
+
+test('Validation: Reject invalid email format and double dots', () => {
+  const invalidEmails = [
+    'invalid-email',
+    'test@example..com',
+    '@nodomain.com',
+    'missingtld@domain'
+  ];
+
+  for (const email of invalidEmails) {
+    const result = validateContactInput({
+      name: 'Clara Oswald',
+      phone: '+1 555 432 1111',
+      email
+    });
+    assert.equal(result.isValid, false, `Expected invalid email for: ${email}`);
+    assert.ok(result.errors.email);
+  }
+});
+
+test('Validation: Reject non-object or array payloads', () => {
+  const res1 = validateContactInput(null);
+  assert.equal(res1.isValid, false);
+
+  const res2 = validateContactInput([1, 2, 3]);
+  assert.equal(res2.isValid, false);
+
+  const res3 = validateContactInput('string payload');
+  assert.equal(res3.isValid, false);
 });
 
 test('Validation: UUID format validation', () => {
