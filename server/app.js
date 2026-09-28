@@ -45,9 +45,13 @@ app.get('/api/health', (req, res) => {
 // Mount Contacts API Routes
 app.use('/api/contacts', contactsRouter);
 
-// Serve frontend in production or if client/dist exists
-const clientDistPath = path.resolve(__dirname, '../client/dist');
-if (fs.existsSync(clientDistPath)) {
+// Serve frontend in production or if dist exists
+const clientDistPath = [
+  path.resolve(__dirname, '../dist'),
+  path.resolve(__dirname, '../client/dist')
+].find((p) => fs.existsSync(p));
+
+if (clientDistPath) {
   app.use(express.static(clientDistPath));
 
   // SPA fallback for frontend routes (must come after API routes)
