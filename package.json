@@ -1,0 +1,27 @@
+{
+  "name": "crud-phonebook-assessment",
+  "version": "1.0.0",
+  "description": "Full-stack Paper Directory CRUD Phonebook with React, Express, and Supabase PostgreSQL",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "server": "node server/index.js",
+    "client": "npm --prefix client run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "npm --prefix client run build",
+    "test": "node --test server/tests/*.test.js"
+  },
+  "keywords": ["phonebook", "crud", "react", "express", "supabase", "vite"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
