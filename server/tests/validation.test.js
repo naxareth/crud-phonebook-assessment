@@ -101,7 +101,8 @@ test('Validation: Reject invalid email format, double dots, and invalid extensio
     'test@example..com',
     '@nodomain.com',
     'missingtld@domain',
-    'arthur.p@example.comdsd123'
+    'name@example.comfwere',
+    'arthur.p@example.comdsd'
   ];
 
   for (const email of invalidEmails) {

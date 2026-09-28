@@ -1,14 +1,25 @@
 // PostgreSQL UUID accepts any hexadecimal UUID, including deterministic seed IDs.
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Strict RFC-compliant email regex ensuring a valid 2-10 letter TLD
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
-
 // Allowed phone formatting characters (digits, spaces, hyphens, parens, dots, slashes, optional leading +)
 const PHONE_ALLOWED_REGEX = /^[+]?[0-9\s\-()./]+$/;
 
 // Unicode letters, spaces, dots, hyphens, apostrophes, and commas for human names
 const NAME_REGEX = /^[a-zA-Z\p{L}\s.'\-,]+$/u;
+
+// Comprehensive set of standard IANA generic and country-code top-level domains (TLDs)
+const VALID_TLDS = new Set([
+  // Common generic TLDs
+  'com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'info', 'biz', 'name', 'pro',
+  'io', 'ai', 'co', 'me', 'dev', 'app', 'tech', 'xyz', 'online', 'site', 'store',
+  'club', 'space', 'design', 'blog', 'cloud', 'digital', 'agency', 'media',
+  'world', 'global', 'network', 'systems', 'email', 'link', 'live', 'page',
+  // Common country codes
+  'ph', 'us', 'uk', 'ca', 'au', 'de', 'fr', 'jp', 'cn', 'in', 'es', 'it', 'nl',
+  'se', 'no', 'fi', 'dk', 'br', 'mx', 'sg', 'nz', 'hk', 'tw', 'kr', 'za', 'eu',
+  'ch', 'at', 'be', 'pl', 'ru', 'ua', 'ie', 'pt', 'gr', 'cz', 'ro', 'hu', 'vn',
+  'th', 'my', 'id', 'cc', 'tv', 'fm', 'so', 'gg', 'to'
+]);
 
 /**
  * Sanitizes a raw string by:
@@ -45,6 +56,53 @@ export const sanitizeString = (val) => {
 export const isValidUUID = (id) => {
   if (typeof id !== 'string') return false;
   return UUID_REGEX.test(id.trim());
+};
+
+/**
+ * Validates email address syntax and verifies top-level domain validity
+ * @param {string} email
+ * @returns {boolean}
+ */
+export const isValidEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.trim().toLowerCase();
+  
+  if (
+    trimmed.length > 254 ||
+    trimmed.includes('..') ||
+    trimmed.includes(' ') ||
+    trimmed.startsWith('.') ||
+    trimmed.endsWith('.')
+  ) {
+    return false;
+  }
+
+  const parts = trimmed.split('@');
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+
+  if (
+    !local ||
+    !domain ||
+    local.length > 64 ||
+    local.startsWith('.') ||
+    local.endsWith('.') ||
+    !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)
+  ) {
+    return false;
+  }
+
+  const domainParts = domain.split('.');
+  if (domainParts.length < 2) return false;
+
+  for (const label of domainParts) {
+    if (!label || label.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)) {
+      return false;
+    }
+  }
+
+  const tld = domainParts[domainParts.length - 1];
+  return VALID_TLDS.has(tld);
 };
 
 /**
@@ -107,10 +165,8 @@ export const validateContactInput = (data = {}) => {
     const cleaned = sanitizeString(rawEmail).toLowerCase();
     
     if (cleaned.length > 0) {
-      if (cleaned.length > 254) {
-        errors.email = 'Email address cannot exceed 254 characters.';
-      } else if (!EMAIL_REGEX.test(cleaned) || cleaned.includes('..') || cleaned.startsWith('.') || cleaned.endsWith('.')) {
-        errors.email = 'Please enter a valid email address with a valid domain (e.g. name@example.com).';
+      if (!isValidEmail(cleaned)) {
+        errors.email = 'Please enter a valid email address with a recognized domain (e.g. name@example.com or name@example.ph).';
       } else {
         sanitizedEmail = cleaned;
       }
