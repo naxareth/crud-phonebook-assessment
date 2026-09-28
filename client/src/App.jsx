@@ -13,7 +13,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Drawer & Modal state
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
@@ -154,10 +154,6 @@ export function App() {
 
       {/* Footer / Architecture attribution */}
       <footer className="directory-footer">
-        <div>
-          <span>Architecture: </span>
-          <strong>React &rarr; Express API &rarr; Supabase PostgreSQL</strong>
-        </div>
         <div className="footer-badge">Paper Directory</div>
       </footer>
 
