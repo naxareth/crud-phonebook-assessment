@@ -4,7 +4,7 @@ export function Header({ onAddClick }) {
   return (
     <header className="directory-header">
       <div className="header-top-row">
-        <div>
+        <div className="header-title-block">
           <div className="directory-tag">DIRECTORY</div>
           <h1 className="directory-title">Your people.</h1>
         </div>

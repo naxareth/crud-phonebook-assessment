@@ -13,6 +13,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [highlightedId, setHighlightedId] = useState(null);
 
   // Drawer & Modal state
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -58,6 +59,39 @@ export function App() {
     });
   }, [contacts, searchTerm]);
 
+  // Auto-scroll and visual focus highlight for newly added or edited contact
+  const triggerHighlight = useCallback((targetId) => {
+    if (!targetId) return;
+    setHighlightedId(targetId);
+
+    // Smooth scroll into view after drawer closes and focus the contact
+    setTimeout(() => {
+      const element = document.querySelector(`[data-contact-id="${targetId}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const editBtn = document.getElementById(`edit-contact-${targetId}`);
+        if (editBtn) {
+          try {
+            editBtn.focus({ preventScroll: true });
+          } catch {
+            // fallback
+          }
+        } else {
+          try {
+            element.focus({ preventScroll: true });
+          } catch {
+            // fallback
+          }
+        }
+      }
+    }, 240);
+
+    // Remove pulse highlight after 2.8s
+    setTimeout(() => {
+      setHighlightedId((prev) => (prev === targetId ? null : prev));
+    }, 2800);
+  }, []);
+
   // Open "New Entry" Drawer
   const handleOpenAdd = (e) => {
     if (e && e.currentTarget) {
@@ -89,6 +123,11 @@ export function App() {
 
   // Save (Create or Update) handler passed to drawer
   const handleSaveContact = async (payload, id) => {
+    // If a search was active, clear it so the added contact is clearly visible
+    if (searchTerm) {
+      setSearchTerm('');
+    }
+
     if (id) {
       // Update operation
       const updated = await api.updateContact(id, payload);
@@ -98,6 +137,7 @@ export function App() {
           .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
       );
       setToast({ type: 'success', message: 'Contact updated' });
+      triggerHighlight(id);
     } else {
       // Create operation
       const created = await api.createContact(payload);
@@ -107,6 +147,7 @@ export function App() {
         )
       );
       setToast({ type: 'success', message: 'Contact added' });
+      triggerHighlight(created.id);
     }
   };
 
@@ -124,7 +165,7 @@ export function App() {
       <div
         id="app-shell"
         className="app-container"
-        inert={isModalActive}
+        inert={isModalActive ? '' : undefined}
         aria-hidden={isModalActive}
       >
         <Header onAddClick={handleOpenAdd} />
@@ -156,6 +197,7 @@ export function App() {
               contacts={filteredContacts}
               onEdit={handleOpenEdit}
               onDelete={handleOpenDelete}
+              highlightedId={highlightedId}
             />
           )}
         </main>

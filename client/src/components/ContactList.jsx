@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ContactRow } from './ContactRow.jsx';
 
-export function ContactList({ contacts, onEdit, onDelete }) {
+export function ContactList({ contacts, onEdit, onDelete, highlightedId }) {
   // Group contacts alphabetically by the first letter of their name
   const groupedContacts = useMemo(() => {
     const groups = {};
@@ -48,6 +48,7 @@ export function ContactList({ contacts, onEdit, onDelete }) {
                 contact={contact}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                isHighlighted={highlightedId === contact.id}
               />
             ))}
           </div>

@@ -1,3 +1,5 @@
+import React from 'react';
+
 // Generates 1-2 uppercase initials from a contact's name
 function getInitials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -25,12 +27,17 @@ function getAvatarColors(name = '') {
   return AVATAR_PALETTES[index];
 }
 
-export function ContactRow({ contact, onEdit, onDelete }) {
+export function ContactRow({ contact, onEdit, onDelete, isHighlighted }) {
   const initials = getInitials(contact.name);
   const palette = getAvatarColors(contact.name);
 
   return (
-    <div className="contact-row" data-contact-id={contact.id}>
+    <div
+      id={`contact-${contact.id}`}
+      className={`contact-row ${isHighlighted ? 'is-highlighted' : ''}`}
+      data-contact-id={contact.id}
+      tabIndex={isHighlighted ? -1 : undefined}
+    >
       <div className="contact-identity">
         <div
           className="contact-avatar"

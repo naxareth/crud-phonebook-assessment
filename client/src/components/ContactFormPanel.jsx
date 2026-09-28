@@ -51,19 +51,21 @@ export function ContactFormPanel({
   }, [isOpen, initialContact]);
 
   // Gracefully animate out then invoke onClose
-  const triggerClose = useCallback(() => {
+  const triggerClose = useCallback((restoreFocus = true) => {
     if (isClosing) return;
     setIsClosing(true);
 
     setTimeout(() => {
       setIsClosing(false);
       onClose();
-      // Wait for React to remove inert; deleted/filtered rows need a stable fallback.
-      requestAnimationFrame(() => {
-        const trigger = triggerRef?.current;
-        const target = trigger?.isConnected ? trigger : document.getElementById('add-contact-btn');
-        target?.focus();
-      });
+      if (restoreFocus) {
+        // Wait for React to remove inert; deleted/filtered rows need a stable fallback.
+        requestAnimationFrame(() => {
+          const trigger = triggerRef?.current;
+          const target = trigger?.isConnected ? trigger : document.getElementById('add-contact-btn');
+          target?.focus();
+        });
+      }
     }, 220);
   }, [isClosing, onClose, triggerRef]);
 
@@ -144,8 +146,8 @@ export function ContactFormPanel({
 
     try {
       await onSave(result.sanitized, initialContact ? initialContact.id : null);
-      // Animate out smoothly on success
-      triggerClose();
+      // Animate out smoothly on success without resetting focus to add button
+      triggerClose(false);
     } catch (err) {
       console.error('[Form Submit Error]', err);
       setServerError(err.message || 'Failed to save contact. Please try again.');
