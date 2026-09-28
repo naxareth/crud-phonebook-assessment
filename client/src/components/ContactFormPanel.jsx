@@ -122,6 +122,14 @@ export function ContactFormPanel({
     }
   };
 
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    const result = validateContactForm(formData);
+    if (result.errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: result.errors[name] }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = validateContactForm(formData);
@@ -205,6 +213,7 @@ export function ContactFormPanel({
                 className={`form-input ${errors.name ? 'has-error' : ''}`}
                 value={formData.name}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="e.g. Beatrix Thorne"
                 disabled={isSubmitting || isClosing}
                 aria-required="true"
@@ -230,6 +239,7 @@ export function ContactFormPanel({
                 className={`form-input ${errors.phone ? 'has-error' : ''}`}
                 value={formData.phone}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="e.g. +1 (555) 234-5678"
                 disabled={isSubmitting || isClosing}
                 aria-required="true"
@@ -255,6 +265,7 @@ export function ContactFormPanel({
                 className={`form-input ${errors.email ? 'has-error' : ''}`}
                 value={formData.email}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="e.g. beatrix@example.com"
                 disabled={isSubmitting || isClosing}
                 aria-invalid={Boolean(errors.email)}

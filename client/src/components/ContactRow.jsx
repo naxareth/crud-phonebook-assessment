@@ -6,9 +6,9 @@ export function ContactRow({ contact, onEdit, onDelete }) {
       <div className="contact-main">
         <div className="contact-name">{contact.name}</div>
         <div className="contact-details">
-          <span className="contact-phone">{contact.phone}</span>
+          <div className="contact-phone">{contact.phone}</div>
           {contact.email && (
-            <span className="contact-email">· {contact.email}</span>
+            <div className="contact-email">{contact.email}</div>
           )}
         </div>
       </div>
