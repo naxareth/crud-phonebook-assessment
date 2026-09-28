@@ -150,3 +150,11 @@ test('Validation: UUID format validation', () => {
   assert.equal(isValidUUID(null), false);
   assert.equal(isValidUUID(undefined), false);
 });
+
+test('Validation: Every deterministic schema seed ID is accepted by CRUD routes', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const schema = await readFile(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');
+  const ids = [...schema.matchAll(/'([0-9a-f-]{36})'/g)].map(match => match[1]);
+  assert.equal(ids.length, 6);
+  for (const id of ids) assert.equal(isValidUUID(id), true, id);
+});

@@ -21,9 +21,12 @@ export function DeleteModal({
     setTimeout(() => {
       setIsClosing(false);
       onClose();
-      if (triggerRef && triggerRef.current) {
-        triggerRef.current.focus();
-      }
+      // Wait for React to remove inert; deleted/filtered rows need a stable fallback.
+      requestAnimationFrame(() => {
+        const trigger = triggerRef?.current;
+        const target = trigger?.isConnected ? trigger : document.getElementById('add-contact-btn');
+        target?.focus();
+      });
     }, 180);
   }, [isClosing, onClose, triggerRef]);
 
@@ -44,7 +47,7 @@ export function DeleteModal({
 
   // Handle ESC key and Tab focus containment
   useEffect(() => {
-    if (!isOpen || isClosing) return;
+    if (!isOpen) return;
 
     const handleKeyDown = (e) => {
       // 1. Escape key

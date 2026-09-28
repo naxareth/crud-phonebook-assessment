@@ -124,7 +124,7 @@ export function App() {
       <div
         id="app-shell"
         className="app-container"
-        inert={isModalActive ? '' : undefined}
+        inert={isModalActive}
         aria-hidden={isModalActive}
       >
         <Header onAddClick={handleOpenAdd} />

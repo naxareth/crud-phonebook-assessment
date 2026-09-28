@@ -96,12 +96,12 @@ crud-phonebook-assessment/
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-- Node.js (v20.19+ or v22.12+)
+- Node.js (20.19.x or later in Node 20, or Node 22.12+; Node 24 recommended)
 - A free [Supabase](https://supabase.com) account & project
 
 ### 2. Database Setup (Supabase)
 1. In your Supabase project dashboard, open the **SQL Editor**.
-2. Open [`supabase/schema.sql`](file:///home/naxareth/Documents/crud-phonebook-assessment/supabase/schema.sql) from this repository.
+2. Open [`supabase/schema.sql`](supabase/schema.sql) from this repository.
 3. Paste the contents and click **Run**. This creates the `contacts` table, indexes, RLS configuration, and initial fictional seed records.
 
 ### 3. Environment Configuration
@@ -188,3 +188,40 @@ npm test
 - **Paper Directory Styling**: Chosen to evoke a physical personal address book with tactile warmth (ivory `#F5F1E8`, dark charcoal ink `#252820`, forest green `#365744`), avoiding generic cookie-cutter dashboards.
 - **Single Reusable Drawer**: Both Create and Edit reuse one accessible side panel with focus trap, ESC closing, and focus restoration to reduce DOM complexity.
 - **Server-Side Supabase Access**: Express acts as the single point of truth for business logic and validation, preventing client-side key leakage.
+
+## Deployment and access
+
+This assessment has **no authentication**. Anyone who can reach the Express API can read, create, edit, and delete every contact. Supabase RLS protects direct database access; it does not restrict these public Express routes. Use fictional demo contacts only.
+
+Deploy the repository root to a Node web service (Node 24):
+
+- Build command: `npm ci && npm --prefix client ci && npm run build`
+- Start command: `npm start`
+- Set `NODE_ENV=production`, `SUPABASE_URL`, and `SUPABASE_KEY` in the host's private environment settings. Let the host provide `PORT`.
+- Never use a `VITE_` variable for database credentials. Do not commit `.env`.
+- Apply `supabase/schema.sql` in the Supabase SQL editor. Repeated runs skip existing deterministic seed IDs; older seeds created with random IDs are not automatically deduplicated.
+- `/api/health` confirms process health and configuration presence only, not a successful database connection. Verify `/api/contacts` and a complete CRUD flow separately.
+- On the hosted URL, create a fictional contact, edit it, refresh, redeploy and confirm it persists, then delete it. Test cancel and invalid input too.
+
+Run `npm run build` before `npm test`: the static-serving test requires `client/dist`.
+
+## Verification record (2026-09-28)
+
+- Read both planning documents; no repository `AGENTS.md` was found.
+- Production build passed; 21 automated tests passed; client lint exited successfully without diagnostics.
+- Actual Supabase read, browser create and edit, leading-zero phone preservation, optional email, and reload persistence passed on the built app served by Express at port 3001.
+- API deletion returned 204; a fresh read confirmed removal; a repeated deletion returned 404. Only the fictional verification contact was removed. Final delete-button submission was not browser-tested.
+- Browser checks passed for required-field and email validation, both modal Tab/Shift+Tab boundaries, background inert attribute, and cancel focus restoration. Desktop was visually inspected; the mobile form fit a 390px viewport without horizontal overflow.
+- `.env` is untracked; the configured server key was absent from generated frontend assets. No credentials were printed.
+- Public deployment, persistence across redeployment, database RLS policy inspection, SQL rerun execution, and browser recovery from a failed save remain unverified.
+
+Interview note: deterministic seed IDs must also pass route validation; modal focus must be restored after React removes `inert`; a configuration health check alone cannot prove CRUD works. The local integration checks exercised the real database instead of inferring success from a health response.
+
+Repeat the API smoke check against the running local app or your deployed origin:
+
+```bash
+node scripts/smoke-crud.js http://localhost:3001
+# Or: node scripts/smoke-crud.js https://your-app-host
+```
+
+This creates a uniquely named fictional contact, verifies validation and CRUD against the actual database, then deletes only that contact. It does not test the browser or persistence across redeployment.

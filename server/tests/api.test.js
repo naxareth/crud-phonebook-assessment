@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import app from '../app.js';
+import { config } from '../config.js';
 
 let server;
 let baseUrl;
@@ -96,4 +97,20 @@ test('Frontend Static: GET / returns 200 and serves HTML', async () => {
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.ok(html.includes('Paper Directory'));
+});
+
+
+test('API: Unexpected errors do not expose internal configuration details', async () => {
+  const savedUrl = config.supabaseUrl;
+  const savedKey = config.supabaseKey;
+  try {
+    config.supabaseUrl = '';
+    config.supabaseKey = '';
+    const res = await fetch(`${baseUrl}/api/contacts`);
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), { error: 'An unexpected server error occurred.' });
+  } finally {
+    config.supabaseUrl = savedUrl;
+    config.supabaseKey = savedKey;
+  }
 });

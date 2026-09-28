@@ -58,15 +58,18 @@ export function ContactFormPanel({
     setTimeout(() => {
       setIsClosing(false);
       onClose();
-      if (triggerRef && triggerRef.current) {
-        triggerRef.current.focus();
-      }
+      // Wait for React to remove inert; deleted/filtered rows need a stable fallback.
+      requestAnimationFrame(() => {
+        const trigger = triggerRef?.current;
+        const target = trigger?.isConnected ? trigger : document.getElementById('add-contact-btn');
+        target?.focus();
+      });
     }, 220);
   }, [isClosing, onClose, triggerRef]);
 
   // Handle ESC key to close and Tab key to trap focus
   useEffect(() => {
-    if (!isOpen || isClosing) return;
+    if (!isOpen) return;
 
     const handleKeyDown = (e) => {
       // 1. Escape key handling
